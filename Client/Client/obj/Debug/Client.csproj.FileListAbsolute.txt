@@ -4,3 +4,9 @@ D:\C#\Server-Client\Client\Client\obj\Debug\Client.csprojAssemblyReference.cache
 D:\C#\Server-Client\Client\Client\obj\Debug\Client.csproj.CoreCompileInputs.cache
 D:\C#\Server-Client\Client\Client\obj\Debug\Client.exe
 D:\C#\Server-Client\Client\Client\obj\Debug\Client.pdb
+D:\C#\Server-Client\Server-Client\Client\Client\bin\Debug\Client.exe
+D:\C#\Server-Client\Server-Client\Client\Client\bin\Debug\Client.pdb
+D:\C#\Server-Client\Server-Client\Client\Client\obj\Debug\Client.csprojAssemblyReference.cache
+D:\C#\Server-Client\Server-Client\Client\Client\obj\Debug\Client.csproj.CoreCompileInputs.cache
+D:\C#\Server-Client\Server-Client\Client\Client\obj\Debug\Client.exe
+D:\C#\Server-Client\Server-Client\Client\Client\obj\Debug\Client.pdb

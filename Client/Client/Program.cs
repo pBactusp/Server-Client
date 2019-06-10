@@ -98,6 +98,11 @@ namespace Client
                             break;
 
 
+                        case "run":
+                            cli.Send_Text("run" + command[1]);
+                            break;
+
+
                         case "exit":
                             cli.Send_Text("exit");
                             cli.Disconnect();

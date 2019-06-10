@@ -84,7 +84,7 @@ namespace Client
 
             byte[] data = new byte[rec];
             Array.Copy(recBuffer, data, rec);
-            PresentingData("Recieved: " + Encoding.ASCII.GetString(data), EventArgs.Empty);
+            PresentingData(Encoding.ASCII.GetString(data), EventArgs.Empty);
         }
         public void Send_Text(string text)
         {
