@@ -77,14 +77,18 @@ namespace Client
         }
 
 
-        public void Recieve_Text()
+        public string Recieve_Text(bool echo = true)
         {
             byte[] recBuffer = new byte[_bufferSize];
             int rec = _socket.Receive(recBuffer);
 
             byte[] data = new byte[rec];
             Array.Copy(recBuffer, data, rec);
-            PresentingData(Encoding.ASCII.GetString(data), EventArgs.Empty);
+
+            if (echo)
+                PresentingData(Encoding.ASCII.GetString(data), EventArgs.Empty);
+
+            return Encoding.ASCII.GetString(data);
         }
         public void Send_Text(string text)
         {
@@ -95,16 +99,38 @@ namespace Client
         {
             string output = ReadFile(source);
             int numOfPacks = output.Length / _bufferSize + 1;
-            Send_Text("send_file" + targetName + " " + numOfPacks);
+            Send_Text("receive_file" + targetName + " " + numOfPacks);
 
             for (int packs_index = 0; packs_index < numOfPacks; packs_index++)
-                if (output.Length - packs_index * _bufferSize < 1024)
+                if (output.Length - packs_index * _bufferSize < _bufferSize)
                     Send_Text(output.Substring(packs_index * _bufferSize, output.Length - packs_index * _bufferSize));
                 else
                     Send_Text(output.Substring(packs_index * _bufferSize, _bufferSize));
 
             Recieve_Text();
         }
+
+        public string Recieve_File(int numOfPacks, bool echo = true)
+        {
+            byte[] recBuffer = new byte[_bufferSize];
+            int rec;
+            byte[] data;
+
+            string input = "";
+            for (int i = 0; i < numOfPacks; i++)
+            {
+                rec = _socket.Receive(recBuffer);
+                data = new byte[rec];
+                Array.Copy(recBuffer, data, rec);
+                input += Encoding.ASCII.GetString(data);
+            }
+
+            if (echo)
+                PresentingData(input, EventArgs.Empty);
+
+            return input;
+        }
+
         public void Disconnect()
         {
             _socket.Disconnect(true);

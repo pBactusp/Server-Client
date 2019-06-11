@@ -82,8 +82,23 @@ namespace Client
                         case "time":
                         case "gettime":
                         case "get_time":
-                            cli.Send_Text("get_time");
+                            cli.Send_Text("time");
                             cli.Recieve_Text();
+                            break;
+
+
+                        case "list":
+                        case "list_files":
+                            if (command.Length == 1)
+                                cli.Send_Text("list");
+                            else
+                                cli.Send_Text("list" + command[1]);
+                            int index = int.Parse(cli.Recieve_Text(false));
+
+                            if (index > 0)
+                                cli.Recieve_File(index);
+                            else
+                                cli.Recieve_Text();
                             break;
 
 
@@ -95,11 +110,21 @@ namespace Client
 
                         case "compile":
                             cli.Send_Text("compile" + command[1]);
+                            cli.Recieve_Text();
                             break;
 
 
                         case "run":
                             cli.Send_Text("run" + command[1]);
+                            cli.Recieve_Text();
+                            break;
+
+
+                        case "del":
+                        case "delete":
+                        case "remove":
+                            cli.Send_Text("del" + command[1]);
+                            cli.Recieve_Text();
                             break;
 
 
@@ -118,6 +143,12 @@ namespace Client
                             Environment.Exit(0);
                             break;
 
+
+                        case "clear":
+                        case "clean":
+                        case "wipe":
+                            Console.Clear();
+                            break;
                     }
 
                 }

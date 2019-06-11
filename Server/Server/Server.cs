@@ -59,11 +59,163 @@ namespace Server
             _socket.BeginAccept(new AsyncCallback(Callback_Accept), soc);
 
         }
+        private void Callback_Recieve(IAsyncResult AR)
+        {
+            Socket soc = (Socket)AR.AsyncState;
+            int recieved = soc.EndReceive(AR);
+            byte[] dataBuffer = new byte[recieved];
+            Array.Copy(_buffer, dataBuffer, recieved);
+
+            string inputText = Encoding.ASCII.GetString(dataBuffer);
+
+            PresentingData("Text recieved: " + inputText, EventArgs.Empty);
+
+            string[] command = inputText.Split(' ');
+
+            switch (command[0].ToLower())
+            {
+                case "time":
+                    Command_Time(soc);
+                    break;
+
+
+                case "list":
+                    if (command.Length == 1)
+                        Command_List(_basePath, soc);
+                    else
+                    {
+                        if (Directory.Exists(command[1]))
+                            Command_List(command[1], soc);
+                        else
+                        {
+                            Send_Text("0", soc);
+                            Send_Text("The folder could not be found", soc);
+                        }
+
+                    }
+
+                    break;
+
+
+                case "receive_file":
+                    Command_RecieveFile(command, soc);
+                    break;
+
+
+                case "compile":
+                    Command_Compile(command, soc);
+                    break;
+
+
+                case "run":
+                    Command_Run(command, soc);
+                    break;
+
+
+                case "del":
+                    Command_Del(command, soc);
+                    break;
+
+
+                case "exit":
+                    Command_Exit(soc);
+                    break;
+
+
+                case "poff":
+                    Command_PowerOff(soc);
+                    break;
+
+
+                default:
+                    string tempError = "The command: '" + command[0] + "' was not recognized";
+                    PresentingData(tempError, EventArgs.Empty);
+                    Send_Text(tempError, soc);
+                    break;
+            }
+
+            if (command[0] != "exit")
+                soc.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(Callback_Recieve), soc);
+        }
+        private void Callback_Send(IAsyncResult AR)
+        {
+            Socket soc = (Socket)AR.AsyncState;
+            soc.EndSend(AR);
+        }
+
+
+        private void Send_LongString(string str, Socket soc)
+        {
+            int numOfPacks = str.Length / _buffer.Length + 1;
+
+            Send_Text(numOfPacks.ToString(), soc);
+
+            for (int packs_index = 0; packs_index < numOfPacks; packs_index++)
+                if (str.Length - packs_index * _buffer.Length < _buffer.Length)
+                    Send_Text(str.Substring(packs_index * _buffer.Length, str.Length - packs_index * _buffer.Length), soc);
+                else
+                    Send_Text(str.Substring(packs_index * _buffer.Length, _buffer.Length), soc);
+        }
 
 
         private void Command_Time(Socket soc)
         {
             Send_Text(DateTime.Now.ToLongDateString(), soc);
+        }
+        private void Command_List(string source, Socket soc)
+        {
+            if (!Directory.Exists(source))
+            {
+                Send_Text("The folder clould not be found", soc);
+                return;
+            }
+
+            string[] folderNames = Directory.GetDirectories(source);
+            string[] fileNames = Directory.GetFiles(source);
+
+            if (folderNames.Length == 0 &&
+                fileNames.Length == 0)
+            {
+                Send_Text("0", soc);
+                Send_Text("The folder is empty", soc);
+                return;
+            }
+
+
+            int longet_folderName = 0;
+            if (folderNames.Length > 0)
+                longet_folderName = folderNames.Max(x => x.Length);
+
+            int longet_fileName = 0;
+            if (fileNames.Length > 0)
+                longet_fileName = fileNames.Max(x => x.Length);
+
+            int longestName_length = Math.Max(longet_folderName, longet_fileName);
+
+
+            // Title
+            string ret = source + Environment.NewLine;
+
+            // Create seperator line
+            for (int i = 0; i < longestName_length; i++)
+                ret += '-';
+            ret += Environment.NewLine;
+
+            // List names of folders
+            foreach (string str in folderNames)
+                ret += str + Environment.NewLine;
+
+            // Create seperator line
+            for (int i = 0; i < longestName_length; i++)
+                ret += '-';
+            ret += Environment.NewLine;
+
+            // List names of files
+            foreach (string str in fileNames)
+                ret += str + Environment.NewLine;
+
+
+            Send_LongString(ret, soc);
         }
         private void Command_RecieveFile(string[] command, Socket soc)
         {
@@ -105,7 +257,7 @@ namespace Server
                 Send_Text("The file could not be found", soc);
             else
             {
-                string errorLog = CompilerTools.Compile_FromFile(target, command[1].Substring(0, command[1].Length - 3) + ".exe");
+                string errorLog = CompilerTools.Compile_FromFile(target, target.Substring(0, target.Length - 3) + ".exe");
                 if (errorLog == "")
                 {
                     Send_Text("The file has been compiled", soc);
@@ -127,8 +279,20 @@ namespace Server
                 Send_Text("The application has been executed", soc);
             }
             else
-                Send_Text("The application has not been found", soc);
+                Send_Text("The application clould not be found", soc);
         }
+        private void Command_Del(string[] command, Socket soc)
+        {
+            string target = Path.Combine(_basePath, command[1]);
+            if (File.Exists(target))
+            {
+                File.Delete(target);
+                Send_Text("The file has been deleted", soc);
+            }
+            else
+                Send_Text("The file clould not be found", soc);
+        }
+
         private void Command_Exit(Socket soc)
         {
             Send_Text("You have disconnected succesfully", soc);
@@ -151,71 +315,7 @@ namespace Server
         }
 
 
-        private void Callback_Recieve(IAsyncResult AR)
-        {
-            Socket soc = (Socket)AR.AsyncState;
-            int recieved = soc.EndReceive(AR);
-            byte[] dataBuffer = new byte[recieved];
-            Array.Copy(_buffer, dataBuffer, recieved);
 
-            string inputText = Encoding.ASCII.GetString(dataBuffer);
-
-            PresentingData("Text recieved: " + inputText, EventArgs.Empty);
-
-            string[] command = inputText.Split(' ');
-
-            switch (command[0].ToLower())
-            {
-                case "time":
-                case "get_time":
-                case "gettime":
-                    Command_Time(soc);
-                    break;
-
-
-                case "send_file":
-                    Command_RecieveFile(command, soc);
-                    break;
-
-
-                case "compile":
-                    Command_Compile(command, soc);
-                    break;
-
-
-                case "run":
-                    Command_Run(command, soc);
-                    break;
-
-
-                case "exit":
-                    Command_Exit(soc);
-                    break;
-
-
-                case "poff":
-                case "poweroff":
-                case "power_off":
-                    Command_PowerOff(soc);
-                    break;
-
-
-                default:
-                    string tempError = "The command: '" + command[0] + "' was not recognized";
-                    PresentingData(tempError, EventArgs.Empty);
-                    Send_Text(tempError, soc);
-                    break;
-            }
-
-            if (command[0] != "exit")
-                soc.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(Callback_Recieve), soc);
-        }
-
-        private void Callback_Send(IAsyncResult AR)
-        {
-            Socket soc = (Socket)AR.AsyncState;
-            soc.EndSend(AR);
-        }
 
 
         private void Send_Text(string text, Socket soc)
